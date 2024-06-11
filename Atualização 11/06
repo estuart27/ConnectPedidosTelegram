@@ -1,0 +1,345 @@
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException,TimeoutException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import WebDriverException
+import ssl
+import re
+import telebot
+import threading
+from time import sleep
+from tkinter import *
+import chromedriver_autoinstaller
+
+
+def start():
+    def check_and_update_chromedriver():
+        try:
+                # Instala ou atualiza o ChromeDriver automaticamente
+            chromedriver_autoinstaller.install()
+            print("ChromeDriver está atualizado.")
+        except Exception as e:
+                print(
+                f"Ocorreu um erro ao verificar/atualizar o ChromeDriver: {e}")
+
+    check_and_update_chromedriver()    
+    
+
+    def abrir_nova_janela():
+        for k in range(1,50):
+            sleep(500)
+            driver.execute_script("window.open('', '_blank');")
+            driver.switch_to.window(driver.window_handles[-1])
+            driver.get('https://portal.ifoodcorp.com.br/orders')
+            
+    repeticao = threading.Thread(target=abrir_nova_janela)
+    repeticao.start()
+
+
+    valor_anterior = 0
+
+    CHAVE_API = '6852350580:AAHm_OSBWQqMrfwd36Wou8-Z7-h7VqxJlsc'
+    bot = telebot.TeleBot(CHAVE_API)
+    p = 6662355881  
+ 
+    def Verificar(mensagem):
+        return True
+
+    @bot.message_handler(func=Verificar)
+    def responder(mensagem):
+        bot.reply_to(mensagem, f"Já estamos com {valor_anterior} pedidos feitos hoje! Duvidas fala com o Hub Ifood")
+
+    def enviar_lista_pedidos():
+        texto_formatado = '\n'.join(f'{qtd} - {item}' for item, qtd in zip(produto, quantidade))
+        info = f'Pedido {N_pedido} | Criado - {horario_pedido}'
+        soma = info + '\n' + texto_formatado
+        bot.send_message(chat_id=Id_telegram, text=str(soma))
+        print('Pedido Enviado para RE')
+        
+    thread_bot = threading.Thread(target=bot.polling)
+    thread_bot.start()
+
+    # Exemplo de uso do driver
+    driver = webdriver.Chrome(service=None)
+    driver.get("https://portal.ifoodcorp.com.br/")
+    sleep(5)
+
+    email = login_entry.get()
+    senha = senha_entry.get()
+    código_segurança = autenticacao_entry.get()
+    Id_telegram = ID_telegram.get()
+    Id_restaurante = Codigo_RE.get()
+
+
+    # WebDriverWait(driver, 10).until(
+    #     EC.presence_of_element_located((By.ID, "example-element-id"))
+    # )
+
+    email_input = WebDriverWait(driver, 100).until(
+        EC.presence_of_element_located((By.XPATH, '//*[@id="email"]'))
+    )
+    email_input.send_keys(email)
+
+
+    login_button = WebDriverWait(driver, 100).until(
+        # EC.element_to_be_clickable((By.XPATH, '//*[@id="app"]/div[1]/div[1]/div/div[3]/div/div[2]/main/form/button'))
+        EC.element_to_be_clickable((By.XPATH, '//*[@id="app"]/div[1]/div[1]/div[2]/div[2]/main/form/button'))                              
+    )
+    login_button.click()
+
+    # ------ Login -------- 
+
+    username_input = WebDriverWait(driver, 100).until(
+        EC.presence_of_element_located((By.XPATH, '//*[@id="loginForm:username"]'))
+    )
+    username_input.send_keys(email)
+
+
+    password_input = WebDriverWait(driver, 100).until(
+        EC.presence_of_element_located((By.XPATH, '//*[@id="loginForm:password"]'))
+    )
+    password_input.send_keys(senha)
+
+
+    login_submit_button = WebDriverWait(driver, 100).until(
+        EC.element_to_be_clickable((By.XPATH, '//*[@id="loginForm:loginButton"]'))
+    )
+    login_submit_button.click()
+
+    codigo = WebDriverWait(driver, 100).until(
+        EC.presence_of_element_located((By.XPATH, '//*[@id="loginForm:otpCode"]'))
+    )
+
+    codigo.send_keys(código_segurança)
+
+
+    clica_codigo = WebDriverWait(driver, 100).until(
+        EC.presence_of_element_located((By.XPATH, '//*[@id="loginForm"]/div[2]/input'))
+    )
+    clica_codigo.click()
+
+    # ------ login ------
+
+    cod =  WebDriverWait(driver, 100).until(
+        EC.element_to_be_clickable((By.XPATH, '//*[@id="pomodoro-modal-root"]/div/div[1]/div[2]/div[1]/div[1]/input'))
+    )
+    cod.send_keys(Id_restaurante)
+
+    clicaRe = WebDriverWait(driver, 100).until(
+        EC.element_to_be_clickable((By.XPATH, '//*[@id="pomodoro-modal-root"]/div/div[1]/div[2]/div[2]/ul/li/div[1]/img'))
+    )
+    clicaRe.click()
+
+
+    Pedidos =  WebDriverWait(driver, 100).until(
+        EC.element_to_be_clickable((By.XPATH,  '//*[@id="app"]/div[1]/div[1]/div/div[3]/div[1]/div/div/div/div/div/div[2]/div[2]/div[2]/a/div/div[1]/div'))
+    )
+    Pedidos.click()
+
+    janela.destroy()
+
+    sleep(20)
+
+    quantidade = []
+    produto = []    
+    N_pedido = []
+    horario_pedido = []
+
+
+    # -------- certo -----------
+    def ColetarDadosPedidos():
+        for j in range(1, 50): # loop 2
+            xpath = f'//*[@id="pomodoro-modal-root"]/div/div[1]/div[3]/div[2]/div[3]/div/div[2]/div/div[1]/table/tbody/tr[{j}]'
+
+            try:
+                sleep(2)
+
+                actions = ActionChains(driver)
+
+                # Encontrar o elemento
+                qtd_element = driver.find_element(By.XPATH, f'{xpath}/td[1]')
+
+                # Mover o mouse sobre o elemento
+                actions.move_to_element(qtd_element).perform()
+
+                # Aguardar até que o elemento esteja visível (pode ser necessário ajustar o tempo)
+                WebDriverWait(driver, 100).until(EC.visibility_of(qtd_element))
+
+                # Coletar o texto do elemento
+                quantidade.append(qtd_element.text)
+
+                # Repetir o mesmo processo para o segundo elemento
+                itens_element = driver.find_element(By.XPATH, f'{xpath}/td[2]')
+                actions.move_to_element(itens_element).perform()
+                WebDriverWait(driver, 100).until(EC.visibility_of(itens_element))
+                produto.append(itens_element.text)
+
+
+            except NoSuchElementException:
+                return False  # Retorna False para indicar que o loop 2 termino
+            
+            except TimeoutException:
+                print('verificando')
+                sleep(5)
+                continue
+            
+            except WebDriverException:
+                    sleep(10)
+                    driver.refresh()
+                    print('Erro que pode ser da net !')
+                    continue
+    
+
+        return True  # Retorna True para indicar que o loop 2 foi concluído com sucesso
+
+    qtd_pedidos = WebDriverWait(driver, 30).until(
+        EC.visibility_of_element_located((By.XPATH, '//*[@id="micro-frontend-orders"]/div[2]/div[4]/div/div/div[1]/table/tbody/tr[1]/td/div/span[2]'))
+            )
+    frase = qtd_pedidos.text
+
+    match = re.search(r'\b(\d+)\s+pedidos\b', frase)
+    valor_anterior = int(match.group(1))
+
+    while True:
+        try:
+
+            qtd_pedidos = WebDriverWait(driver, 100).until(
+                EC.visibility_of_element_located((By.XPATH, '//*[@id="micro-frontend-orders"]/div[2]/div[4]/div/div/div[1]/table/tbody/tr[1]/td/div/span[2]'))
+            )
+            frase = qtd_pedidos.text
+
+            match = re.search(r'\b(\d+)\s+pedidos\b', frase)
+
+            if match:
+                valor_atual = int(match.group(1))
+
+                # Calcular a diferença em relação ao valor anterior
+                diferenca = valor_atual - valor_anterior
+                print(diferenca)
+                print(valor_atual)
+                
+                # Atualizar o valor anterior
+                valor_anterior = valor_atual
+
+                if diferenca > 0:
+                    for i in range(2, 2 + diferenca):
+                        actions = ActionChains(driver)
+
+                        pedido = WebDriverWait(driver, 100).until(
+                            EC.element_to_be_clickable((By.XPATH, f'//*[@id="micro-frontend-orders"]/div[2]/div[4]/div/div/div[1]/table/tbody/tr[{i}]/td[3]'))                                    
+                        )                                          
+                        N_pedido.append(pedido.text)
+
+
+                        horario = WebDriverWait(driver, 100).until(
+                            EC.presence_of_element_located((By.XPATH, f'//*[@id="micro-frontend-orders"]/div[2]/div[4]/div/div/div[1]/table/tbody/tr[{i}]/td[1]'))                                    
+                        )
+                        horario_pedido.append(horario.text)
+
+                        actions.move_to_element(pedido).click().perform()
+
+                        ColetarDadosPedidos()
+                        
+                        print()
+                        print(N_pedido)                        
+                        print(horario_pedido)
+                        print("Lista de produtos:", ', '.join(produto))
+
+#                        enviar_lista_pedidos()
+                        enviar_lista_pedidos()
+                        
+                        produto.clear()
+                        quantidade.clear()
+                        N_pedido.clear()
+                        horario_pedido.clear()
+
+                        driver.refresh()
+
+                else :
+                    sleep(7)
+                    driver.refresh()
+
+
+
+        except NoSuchElementException:
+            sleep(5)
+            driver.refresh()
+            continue
+
+        except TimeoutException:
+            print('PAGINA ')
+            sleep(5)
+            driver.refresh()
+            continue
+
+        # except WebDriverException:
+        #     print(f"Limite de linhas verificadas atinngidas")
+        #     sleep(5)
+        #     continue
+
+        except (ssl.SSLError) as error:
+            print(f"Problema na conexão, Verificar {error} ...")
+            sleep(5)
+            driver.refresh()
+
+        except Exception as e:
+            print(f"Deu Mi {e}")
+            sleep(20)
+            driver.refresh()
+            continue
+
+
+        print('Aguardando mais demanda.')
+
+
+janela = Tk()
+janela.geometry('600x300')
+janela['bg'] = "#f80202"
+janela.title('Efetividade operacional Hub Ifood')
+
+botao = Button(janela, text='Começar Sessâo',command=start ,font=("Impact", 13),relief="solid", bg='red',fg='white',compound="center",anchor="center",width=40)
+botao.grid(column=1, row=6, padx=10, pady=5)
+
+login_label = Label(janela, text="Email", bg='red',fg="white",font=("Impact", 12),width=7,height=1,)
+login_label.grid(column=0, row=1)
+
+login_entry = Entry(janela,width=35)
+login_entry.grid(column=1, row=1, padx=10, pady=10)
+
+senha_label = Label(janela, text="Senha", bg='red',fg="white",font=("Impact", 12),width=7,height=1,)
+senha_label.grid(column=0, row=2)
+
+senha_entry = Entry(janela,width=35)
+senha_entry.grid(column=1, row=2, padx=10, pady=10)
+
+autenticacao_label = Label(janela, text="Autenticação", bg='red',fg="white",font=("Impact", 12),width=15,height=1,)
+autenticacao_label.grid(column=0, row=3)
+
+autenticacao_entry = Entry(janela,width=35)
+autenticacao_entry.grid(column=1, row=3, padx=10, pady=10)
+
+telegram_consulta =Label(janela, text="ID Telegram", bg='red',fg="white",font=("Impact", 12),width=15,height=1,)
+telegram_consulta.grid(column=0, row=4)
+
+ID_telegram = Entry(janela,width=35)
+ID_telegram.grid(column=1, row=4, padx=10, pady=10)
+ID_telegram.insert(0,'6662355881')
+ID_telegram.grid(column=1, row=4, padx=10, pady=10)
+
+combo_hub = Label(janela, text='Codigo RE', bg='red',fg="white",font=("Impact", 12),width=15,height=1,)
+combo_hub.grid(column=0, row=5, padx=5, pady=10,sticky='w')
+
+Codigo_RE = Entry(janela,width=35)
+Codigo_RE.grid(column=1, row=5, padx=10, pady=10)
+
+Codigo_RE.insert(0, ' 1095867')
+Codigo_RE.grid(column=1, row=5, padx=10, pady=10)
+
+janela.mainloop()
+janela.quit()
+
+# 15 MIN APROXIMANDAMENTE PARA DELE DAR TELA 'PRETA'
